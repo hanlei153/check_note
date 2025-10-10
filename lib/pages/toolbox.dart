@@ -1,8 +1,9 @@
 import 'package:check_note/common/func/task_database.dart';
 import 'package:flutter/material.dart';
 import 'toolbox/kegelpage.dart';
-import 'toolbox/cheerpage.dart';
-import 'package:check_note/common/func/notificationService.dart';
+import 'toolbox/focuspage.dart';
+import 'toolbox/relaxpage.dart';
+// import 'package:check_note/common/func/notificationService.dart';
 
 class ToolboxPage extends StatefulWidget {
   const ToolboxPage({super.key});
@@ -119,16 +120,16 @@ class _ToolboxPageState extends State<ToolboxPage> {
                 MaterialPageRoute(builder: (_) => KegelPage()),
               );
             }),
-            ToolboxPage._buildFeatureCard(Icons.alarm, '打卡提醒', context,
-                () async {
-              TimeOfDay? time = await pickTime(context);
-              await DatabaseHelper().saveNotificationTime(time);
-              await NotificationService.scheduleDailyNotification();
-            }),
-            ToolboxPage._buildFeatureCard(Icons.add, '加油', context, () {
+            ToolboxPage._buildFeatureCard(Icons.psychology, '专注', context, () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => CheerPage()),
+                MaterialPageRoute(builder: (_) => FocusPage()),
+              );
+            }),
+            ToolboxPage._buildFeatureCard(Icons.spa, '放松', context, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => RelaxPage()),
               );
             }),
           ],
