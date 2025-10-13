@@ -1,16 +1,13 @@
 # check_note
 
-A new Flutter project.
+此项目支持mobile和pad，项目内部做了屏幕自适应，根据屏幕宽度加载对应的UI界面，非常美观，目前只测试了Android，ios还没有测试（正常应该可以直接运行，使用的库都是支持ios的）
 
-## Getting Started
+### Pad示例图
+<img src="assets/images/README/Pad/home.png" alt="PAD" width="300"/>
+<img src="assets/images/README/Pad/toolbox.png" alt="PAD" width="300"/>
+<img src="assets/images/README/Pad/audioPlayer.png" alt="PAD" width="300"/>
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Mobile示例图
+<img src="assets/images/README/Mobile/home.png" alt="PAD" width="300"/>
+<img src="assets/images/README/Mobile/toolbox.png" alt="PAD" width="300"/>
+<img src="assets/images/README/Mobile/audioPlayer.png" alt="PAD" width="300"/>
