@@ -1,9 +1,9 @@
-import 'package:check_note/common/func/task_database.dart';
-import 'package:flutter/material.dart';
 import 'toolbox/kegelpage.dart';
 import 'toolbox/focuspage.dart';
 import 'toolbox/relaxpage.dart';
 // import 'package:check_note/common/func/notificationService.dart';
+
+import '../common/app_imports.dart';
 
 class ToolboxPage extends StatefulWidget {
   const ToolboxPage({super.key});
@@ -109,7 +109,8 @@ class _ToolboxPageState extends State<ToolboxPage> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: GridView.count(
-          crossAxisCount: 2, // 每行两个
+          // crossAxisCount: 2, // 每行两个
+          crossAxisCount: globalDeviceType == CustomDeviceType.tablet ? 4 : 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
           children: [

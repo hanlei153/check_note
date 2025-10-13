@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
-import '../../../common/func/audioPlayer.dart';
 import 'package:just_audio/just_audio.dart';
+
+import '../../../common/app_imports.dart';
 
 class AudioPlayerUI2 extends StatefulWidget {
   final String audioAssetPath;

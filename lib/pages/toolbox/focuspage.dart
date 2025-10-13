@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
-import 'UI/audioPlayerUi2.dart';
-import '../../common/model/audioItem.dart';
+import 'package:check_note/pages/toolbox/audioPlayerUI/AudioPlayerUi.dart';
+import 'package:sizer/sizer.dart';
+
+import '../../common/app_imports.dart';
 
 class FocusPage extends StatefulWidget {
   @override
@@ -9,8 +10,6 @@ class FocusPage extends StatefulWidget {
 }
 
 class _FocusPageState extends State<FocusPage> {
-  String? _currentlyPlayingId;
-
   @override
   void initState() {
     super.initState();
@@ -20,6 +19,8 @@ class _FocusPageState extends State<FocusPage> {
   void dispose() {
     super.dispose();
   }
+
+  AudioItem? selectedAudioItem;
 
   final List<AudioItem> _audioItems = [
     AudioItem(
@@ -49,45 +50,79 @@ class _FocusPageState extends State<FocusPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(title: Text('Focus时刻')),
-        body: GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // 每行显示2个
-            crossAxisSpacing: 16, // 水平间距
-            mainAxisSpacing: 16, // 垂直间距
-            childAspectRatio: 1.0, // 宽高比，可以根据需要调整
-          ),
-          itemCount: _audioItems.length,
-          itemBuilder: (context, index) {
-            final audioItem = _audioItems[index];
-            final isPlaying = _currentlyPlayingId == audioItem.id;
-
-            return GestureDetector(
-              onTap: () {
-                _showAudioPlayerBottomSheet(context, audioItem);
-              },
-              child: Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  image: audioItem.coverImageAssetPath != null
-                      ? DecorationImage(
-                          image: AssetImage(audioItem.coverImageAssetPath!),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                  color: Colors.grey.shade300,
-                ),
-                child: Text(
-                  audioItem.title,
-                  style: TextStyle(
-                    color: Colors.white,
+        body: Stack(children: [
+          GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount:
+                  globalDeviceType == CustomDeviceType.tablet ? 4 : 2, // 每行显示2个
+              crossAxisSpacing: 16, // 水平间距
+              mainAxisSpacing: 16, // 垂直间距
+              childAspectRatio: 1.0, // 宽高比，可以根据需要调整
+            ),
+            itemCount: _audioItems.length,
+            itemBuilder: (context, index) {
+              final audioItem = _audioItems[index];
+              return GestureDetector(
+                onTap: () => setState(() {
+                  selectedAudioItem = audioItem;
+                }),
+                child: Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    image: audioItem.coverImageAssetPath != null
+                        ? DecorationImage(
+                            image: AssetImage(audioItem.coverImageAssetPath!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                    color: Colors.grey.shade300,
+                  ),
+                  child: Text(
+                    audioItem.title,
+                    style: TextStyle(
+                      color: Colors.white,
+                    ),
                   ),
                 ),
+              );
+            },
+          ),
+          if (selectedAudioItem != null)
+            Positioned(
+              bottom: 1.h,
+              left: globalDeviceType == CustomDeviceType.tablet
+                  ? (100.w - 97.w) / 2
+                  : (100.w - 96.w) / 2,
+              child: Container(
+                padding: const EdgeInsets.all(5),
+                width:
+                    globalDeviceType == CustomDeviceType.tablet ? 97.w : 96.w,
+                height: globalDeviceType == CustomDeviceType.tablet
+                    ? 7.h
+                    : 5.0.h, // 根据设备类型调整高度
+                decoration: BoxDecoration(
+                  color: Colors.white, // 背景色
+                  borderRadius: BorderRadius.circular(30), // 圆角半径，可自定义
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: AudioPlayerUI(
+                  key: ValueKey(selectedAudioItem!.id),
+                  audioAssetPath: selectedAudioItem!.audioAssetPath,
+                  title: selectedAudioItem!.title,
+                  artist: selectedAudioItem!.artist,
+                  coverImageAssetPath: selectedAudioItem!.coverImageAssetPath,
+                ),
               ),
-            );
-          },
-        ));
+            ),
+        ]));
   }
 
   void _showAudioPlayerBottomSheet(BuildContext context, AudioItem audioItem) {
@@ -95,7 +130,8 @@ class _FocusPageState extends State<FocusPage> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return AudioPlayerUI2(
+        return AudioPlayerUI(
+          key: ValueKey(audioItem.id),
           audioAssetPath: audioItem.audioAssetPath,
           title: audioItem.title,
           artist: audioItem.artist,

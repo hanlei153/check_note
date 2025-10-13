@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'mainframePage.dart';
-import 'package:flutter/services.dart';
+import 'package:sizer/sizer.dart';
+import 'common/app_imports.dart';
 // import 'common/func/notificationService.dart';
 // import 'common/func/permission.dart';
 
@@ -28,7 +28,7 @@ void main() async {
   // // 读取存储的提醒时间，如果有就调度通知
   // await NotificationService.scheduleDailyNotification();
 
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -37,27 +37,33 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Check Note',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Color(0xFF7DA683), // 主色：绿色
-          primary: Color(0xFF234631), // 主色深色（按钮等）
-          secondary: Color(0xFFFFF5CC), // 浅黄色作为点缀色
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      initGlobalDeviceType(context);
+      print('设备类型: $globalDeviceType');
+    });
+    return Sizer(builder: (context, orientation, screenType) {
+      return MaterialApp(
+        title: 'Check Note',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Color(0xFF7DA683), // 主色：绿色
+            primary: Color(0xFF234631), // 主色深色（按钮等）
+            secondary: Color(0xFFFFF5CC), // 浅黄色作为点缀色
+          ),
+          useMaterial3: true,
         ),
-        useMaterial3: true,
-      ),
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('zh', 'CN'), // 中文
-        Locale('en', 'US'), // 英文（可选）
-      ],
-      locale: const Locale('zh', 'CN'),
-      home: MainFramePage(),
-    );
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('zh', 'CN'), // 中文
+          Locale('en', 'US'), // 英文（可选）
+        ],
+        locale: const Locale('zh', 'CN'),
+        home: MainFramePage(),
+      );
+    });
   }
 }

@@ -19,41 +19,95 @@ class DatabaseHelper {
 
   Future<Database> _initDb() async {
     final path = join(await getDatabasesPath(), 'checknote.db');
-    return openDatabase(
+
+    final db = await openDatabase(
       path,
       version: 3,
       onCreate: (db, version) async {
+        // 创建 tasks 表
         await db.execute('''
-          CREATE TABLE tasks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT,
-            name TEXT,
-            details TEXT,
-            done INTEGER
-          )
-        ''');
+        CREATE TABLE tasks (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date TEXT,
+          name TEXT,
+          details TEXT,
+          done INTEGER
+        )
+      ''');
+
+        // 创建 notification_time 表
+        await db.execute('''
+        CREATE TABLE notification_time (
+          id INTEGER PRIMARY KEY,
+          hour INTEGER,
+          minute INTEGER
+        )
+      ''');
+
+        // 创建 checkins 表
+        await db.execute('''
+        CREATE TABLE checkins (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date TEXT UNIQUE,
+          timestamp INTEGER
+        )
+      ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await db.execute('''
-            CREATE TABLE IF NOT EXISTS notification_time (
-              id INTEGER PRIMARY KEY,
-              hour INTEGER,
-              minute INTEGER
-            )
-          ''');
+          CREATE TABLE IF NOT EXISTS notification_time (
+            id INTEGER PRIMARY KEY,
+            hour INTEGER,
+            minute INTEGER
+          )
+        ''');
         }
         if (oldVersion < 3) {
           await db.execute('''
-            CREATE TABLE IF NOT EXISTS checkins (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              date TEXT UNIQUE, -- 用于防止同一天多次签到
-              timestamp INTEGER  -- 签到的时间戳，可选
-            )
-          ''');
+          CREATE TABLE IF NOT EXISTS checkins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT UNIQUE,
+            timestamp INTEGER
+          )
+        ''');
         }
       },
     );
+
+    // 🚀 自动检测逻辑：如果缺表就补建
+    await _ensureTableExists(db, 'notification_time', '''
+    CREATE TABLE IF NOT EXISTS notification_time (
+            id INTEGER PRIMARY KEY,
+            hour INTEGER,
+            minute INTEGER
+          )
+  ''');
+    await _ensureTableExists(db, 'checkins', '''
+    CREATE TABLE checkins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT UNIQUE,
+      timestamp INTEGER
+    )
+  ''');
+
+    return db;
+  }
+
+  Future<void> _ensureTableExists(
+      Database db, String tableName, String createSql) async {
+    final res = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+      [tableName],
+    );
+
+    if (res.isEmpty) {
+      print('⚙️ 表 $tableName 不存在，正在自动创建...');
+      await db.execute(createSql);
+      print('✅ 表 $tableName 已自动创建完成');
+    } else {
+      print('✅ 表 $tableName 已存在');
+    }
   }
 
   Future<List<Task>> getTasksByDate(String date) async {

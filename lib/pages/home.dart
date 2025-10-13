@@ -1,10 +1,6 @@
-import 'package:flutter/material.dart';
-import '../common/func/task_database.dart';
-import '../common/model/task.dart';
-
-import '../common/func/permission.dart';
-
 import 'package:table_calendar/table_calendar.dart';
+
+import '../common/app_imports.dart';
 
 class CheckNoteHomePage extends StatefulWidget {
   @override

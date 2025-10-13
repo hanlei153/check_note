@@ -4,9 +4,6 @@ import 'package:audio_session/audio_session.dart';
 class AudioPlayerService {
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  // 是否已释放资源
-  bool _disposed = false;
-
   // 播放状态流
   Stream<PlayerState> get playerStateStream => _audioPlayer.playerStateStream;
 
@@ -39,6 +36,10 @@ class AudioPlayerService {
     } catch (e) {
       print('Error configuring audio session: $e');
     }
+  }
+
+  Future<void> dispose() async {
+    await _audioPlayer.dispose();
   }
 
   // 播放 assets 音频
@@ -148,13 +149,6 @@ class AudioPlayerService {
 
   // 获取循环模式
   LoopMode get currentLoopMode => _audioPlayer.loopMode;
-
-  // 释放资源
-  Future<void> dispose() async {
-    if (_disposed) return;
-    _disposed = true;
-    await _audioPlayer.dispose();
-  }
 
   // 检查是否正在播放
   bool get isPlaying => _audioPlayer.playing;
