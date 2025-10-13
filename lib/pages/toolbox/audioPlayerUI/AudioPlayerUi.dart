@@ -10,6 +10,7 @@ class AudioPlayerUI extends StatefulWidget {
   final String? title;
   final String? artist;
   final String? coverImageAssetPath;
+  final VoidCallback? onCompleted;
 
   const AudioPlayerUI({
     super.key,
@@ -18,6 +19,7 @@ class AudioPlayerUI extends StatefulWidget {
     this.title,
     this.artist,
     this.coverImageAssetPath,
+    this.onCompleted,
   });
 
   @override
@@ -35,13 +37,29 @@ class _AudioPlayerUIState extends State<AudioPlayerUI> {
     _initializeAudio();
     // 监听播放状态流
     _audioService.playerStateStream.listen((state) {
+      final processingState = state.processingState;
       final isPlaying = state.playing;
       if (isPlaying != _isPlaying) {
         setState(() {
           _isPlaying = isPlaying;
         });
       }
+      if (processingState == ProcessingState.completed) {
+        // 播放完成
+        if (widget.onCompleted != null) {
+          widget.onCompleted!();
+        }
+      }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant AudioPlayerUI oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.audioAssetPath != oldWidget.audioAssetPath ||
+        widget.audioUrl != oldWidget.audioUrl) {
+      _initializeAudio();
+    }
   }
 
   Future<void> _initializeAudio() async {

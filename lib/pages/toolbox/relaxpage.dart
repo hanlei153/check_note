@@ -87,6 +87,14 @@ class _RelaxPageState extends State<RelaxPage> {
     ),
   ];
 
+  void _playNextAudio() {
+  final currentIndex = _audioItems.indexOf(selectedAudioItem!);
+  final nextIndex = (currentIndex + 1) % _audioItems.length; // 循环
+  setState(() {
+    selectedAudioItem = _audioItems[nextIndex];
+  });
+}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -160,6 +168,7 @@ class _RelaxPageState extends State<RelaxPage> {
                   title: selectedAudioItem!.title,
                   artist: selectedAudioItem!.artist,
                   coverImageAssetPath: selectedAudioItem!.coverImageAssetPath,
+                  onCompleted: _playNextAudio,
                 ),
               ),
             ),
