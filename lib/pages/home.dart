@@ -11,11 +11,15 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
   List<Task> _tasks = [];
+  Set<DateTime> _eventDays = {};
   bool isShowBanner = true;
   @override
   void initState() {
     super.initState();
+    hasCheckedInToday();
+    hasCheckedAllDays();
     _loadTasksForDay(_selectedDay);
+    _loadAllDateTasks();
     // checkAndRequestNotificationPermission();
   }
 
@@ -25,6 +29,16 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
     setState(() {
       _selectedDay = day;
       _tasks = tasks;
+    });
+  }
+
+  void _loadAllDateTasks() async {
+    final allDateTasks = await DatabaseHelper().getAllTasks();
+    setState(() {
+      _eventDays = allDateTasks.map((task) {
+        final date = DateTime.parse(task['date']);
+        return DateTime(date.year, date.month, date.day);
+      }).toSet();
     });
   }
 
@@ -43,8 +57,79 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
     );
   }
 
+  DateTime today = DateTime.now();
+  bool isCheckIn = false;
+  int checkInCount = 0;
+
+  void hasCheckedAllDays() async {
+    int totalCheckInCount = await DatabaseHelper().getTotalCheckinCount();
+    setState(() {
+      checkInCount = totalCheckInCount;
+    });
+  }
+
+  void hasCheckedInToday() async {
+    bool checkInToday = await DatabaseHelper().hasCheckedInToday(today);
+    int checkInCount = await DatabaseHelper().getTotalCheckinCount();
+    if (checkInToday) {
+      setState(() {
+        isCheckIn = true;
+        checkInCount = checkInCount;
+      });
+    }
+  }
+
   String _formatDate(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  Widget _buildDayCell(DateTime day,
+      {bool isToday = false, bool isSelected = false}) {
+    final hasEvent = _hasEventForDay(day);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      width: 35,
+      decoration: BoxDecoration(
+        color: isSelected
+            ? const Color(0xFF234631)
+            : isToday
+                ? const Color(0xFF7DA683).withOpacity(0.5)
+                : Colors.transparent,
+        shape: BoxShape.circle,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 250),
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.black,
+            ),
+            child: Text('${day.day}'),
+          ),
+          if (hasEvent)
+            Transform.translate(
+              offset: const Offset(0, 12),
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 250),
+                style: TextStyle(
+                  fontSize: 35,
+                  color:
+                      isSelected ? Colors.white : Color.fromARGB(255, 0, 0, 0),
+                  height: 0.1,
+                ),
+                child: Text('·'),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  bool _hasEventForDay(DateTime day) {
+    // 例如：判断该日期是否在打卡列表中
+    return _eventDays.contains(DateTime(day.year, day.month, day.day));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,19 +169,41 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "今天任务完成了吗？",
-                      style: TextStyle(color: Colors.black87, fontSize: 14),
+                      isCheckIn ? '今天好像已经签到过啦！' : "今天签到了吗？",
+                      style: TextStyle(color: Colors.black87, fontSize: 16),
                     ),
+                    // 占位符
+                    Spacer(flex: 1),
+
+                    ElevatedButton(
+                      onPressed: () async {
+                        await DatabaseHelper().checkInToday(today);
+                        hasCheckedInToday();
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(isCheckIn ? '已签到' : '签到'),
+                          Text(
+                            '累计$checkInCount天',
+                            style: TextStyle(fontSize: 10),
+                          )
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 10),
                     GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            isShowBanner = false;
-                          });
-                        },
-                        child: Icon(
-                          Icons.close,
-                          size: 15,
-                        ))
+                      onTap: () {
+                        setState(() {
+                          isShowBanner = false;
+                        });
+                      },
+                      child: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.black54,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -121,16 +228,18 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
                   _focusedDay = focused; // 更新焦点日期，控制当前页面显示
                 });
                 _loadTasksForDay(selected); // 加载对应日期打卡项
+                _loadAllDateTasks(); // 刷新所有日期的打卡项状态
               },
-              calendarStyle: CalendarStyle(
-                selectedDecoration: BoxDecoration(
-                  color: Color(0xFF234631), // 深绿色圆圈
-                  shape: BoxShape.circle,
-                ),
-                todayDecoration: BoxDecoration(
-                  color: Color(0xFF7DA683).withOpacity(0.5), // 浅绿色圆圈
-                  shape: BoxShape.circle,
-                ),
+              calendarBuilders: CalendarBuilders(
+                defaultBuilder: (context, day, focusedDay) {
+                  return _buildDayCell(day);
+                },
+                todayBuilder: (context, day, focusedDay) {
+                  return _buildDayCell(day, isToday: true);
+                },
+                selectedBuilder: (context, day, focusedDay) {
+                  return _buildDayCell(day, isSelected: true);
+                },
               ),
             ),
             Expanded(
@@ -447,6 +556,7 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
                         await DatabaseHelper().insertTask(task);
                         Navigator.pop(context);
                         _loadTasksForDay(_selectedDay);
+                        _loadAllDateTasks();
                       },
                       child: Text('添加'),
                     ),

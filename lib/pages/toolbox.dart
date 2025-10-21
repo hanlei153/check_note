@@ -34,10 +34,6 @@ class ToolboxPage extends StatefulWidget {
 }
 
 class _ToolboxPageState extends State<ToolboxPage> {
-  DateTime today = DateTime.now();
-  bool isCheckIn = false;
-  int checkInCount = 0;
-
   void debugPrintDatabase() async {
     final tasks = await DatabaseHelper().getAllTasks();
     final times = await DatabaseHelper().getAllNotificationTimes();
@@ -59,21 +55,9 @@ class _ToolboxPageState extends State<ToolboxPage> {
     }
   }
 
-  void hasCheckedInToday() async {
-    bool checkInToday = await DatabaseHelper().hasCheckedInToday(today);
-    int _checkInCount = await DatabaseHelper().getTotalCheckinCount();
-    if (checkInToday) {
-      setState(() {
-        isCheckIn = true;
-        checkInCount = _checkInCount;
-      });
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    hasCheckedInToday();
     // debugPrintDatabase();
     // DatabaseHelper().clearCheckins();
   }
@@ -84,27 +68,6 @@ class _ToolboxPageState extends State<ToolboxPage> {
       appBar: AppBar(
         title: const Text('工具箱'),
         centerTitle: true,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: ElevatedButton(
-              onPressed: () async {
-                await DatabaseHelper().checkInToday(today);
-                hasCheckedInToday();
-              },
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(isCheckIn ? '已签到' : '签到'),
-                  Text(
-                    '累计$checkInCount天',
-                    style: TextStyle(fontSize: 10),
-                  )
-                ],
-              ),
-            ),
-          )
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
