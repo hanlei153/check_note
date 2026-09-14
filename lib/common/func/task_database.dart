@@ -10,11 +10,26 @@ class DatabaseHelper {
   DatabaseHelper._internal();
 
   Database? _db;
+  Future<Database>? _openingDatabase;
 
-  Future<Database> get db async {
-    if (_db != null) return _db!;
-    _db = await _initDb();
-    return _db!;
+  Future<Database> get db {
+    final database = _db;
+    if (database != null) return Future.value(database);
+
+    // 首页与通知服务会在启动阶段同时访问数据库。复用同一个打开过程，
+    // 避免多个 openDatabase 同时执行迁移并争抢 BEGIN EXCLUSIVE 锁。
+    return _openingDatabase ??= _openDatabaseOnce();
+  }
+
+  Future<Database> _openDatabaseOnce() async {
+    try {
+      final database = await _initDb();
+      _db = database;
+      return database;
+    } catch (_) {
+      _openingDatabase = null;
+      rethrow;
+    }
   }
 
   Future<Database> _initDb() async {
@@ -22,7 +37,7 @@ class DatabaseHelper {
 
     final db = await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         // 创建 tasks 表
         await db.execute('''
@@ -41,6 +56,14 @@ class DatabaseHelper {
           id INTEGER PRIMARY KEY,
           hour INTEGER,
           minute INTEGER
+        )
+      ''');
+
+        await db.execute('''
+        CREATE TABLE notification_settings (
+          id INTEGER PRIMARY KEY,
+          title TEXT NOT NULL,
+          body_template TEXT NOT NULL
         )
       ''');
 
@@ -72,6 +95,15 @@ class DatabaseHelper {
           )
         ''');
         }
+        if (oldVersion < 4) {
+          await db.execute('''
+          CREATE TABLE IF NOT EXISTS notification_settings (
+            id INTEGER PRIMARY KEY,
+            title TEXT NOT NULL,
+            body_template TEXT NOT NULL
+          )
+        ''');
+        }
       },
     );
 
@@ -88,6 +120,13 @@ class DatabaseHelper {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT UNIQUE,
       timestamp INTEGER
+    )
+  ''');
+    await _ensureTableExists(db, 'notification_settings', '''
+    CREATE TABLE IF NOT EXISTS notification_settings (
+      id INTEGER PRIMARY KEY,
+      title TEXT NOT NULL,
+      body_template TEXT NOT NULL
     )
   ''');
 
@@ -122,6 +161,17 @@ class DatabaseHelper {
     return await dbClient.insert('tasks', task.toMap());
   }
 
+  Future<void> insertTasks(List<Task> tasks) async {
+    if (tasks.isEmpty) return;
+
+    final dbClient = await db;
+    await dbClient.transaction((transaction) async {
+      for (final task in tasks) {
+        await transaction.insert('tasks', task.toMap());
+      }
+    });
+  }
+
   Future<int> updateTask(Task task) async {
     final dbClient = await db;
     return await dbClient
@@ -132,8 +182,6 @@ class DatabaseHelper {
     final dbClient = await db;
     return await dbClient.delete('tasks', where: 'id = ?', whereArgs: [taskid]);
   }
-
- 
 
   Future<void> saveNotificationTime(TimeOfDay? time) async {
     final dbClient = await db;
@@ -163,6 +211,33 @@ class DatabaseHelper {
       }
     }
     return null;
+  }
+
+  Future<void> saveNotificationCopy({
+    required String title,
+    required String bodyTemplate,
+  }) async {
+    final dbClient = await db;
+    await dbClient.insert(
+      'notification_settings',
+      {'id': 1, 'title': title, 'body_template': bodyTemplate},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<Map<String, String>?> getNotificationCopy() async {
+    final dbClient = await db;
+    final result = await dbClient.query(
+      'notification_settings',
+      where: 'id = ?',
+      whereArgs: [1],
+    );
+    if (result.isEmpty) return null;
+
+    return {
+      'title': result.first['title'] as String,
+      'bodyTemplate': result.first['body_template'] as String,
+    };
   }
 
   Future<void> checkInToday(DateTime today) async {

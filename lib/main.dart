@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'mainframePage.dart';
@@ -16,9 +18,19 @@ void main() async {
   //   statusBarIconBrightness: Brightness.light, // 状态栏图标颜色（白色）
   //   systemNavigationBarIconBrightness: Brightness.light, // 导航栏图标颜色（白色）
   // ));
-  await NotificationService.initializeAndSchedule();
-
   runApp(const MyApp());
+
+  // 通知初始化涉及原生插件、时区和数据库，不应阻塞应用首帧。
+  unawaited(_initializeNotifications());
+}
+
+Future<void> _initializeNotifications() async {
+  try {
+    await NotificationService.initializeAndSchedule();
+  } catch (error, stackTrace) {
+    debugPrint('通知初始化失败: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
 }
 
 class MyApp extends StatelessWidget {

@@ -45,19 +45,131 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
     });
   }
 
-  void _copyTaskToDate(Task task, DateTime date) async {
-    final copiedItem = Task(
-      date: _formatDate(date),
-      name: task.name,
-      details: task.details,
-    );
+  Future<void> _copyTaskToDates(Task task, Set<DateTime> dates) async {
+    final sortedDates = dates.toList()..sort();
+    final copiedItems = sortedDates
+        .map(
+          (date) => Task(
+            date: _formatDate(date),
+            name: task.name,
+            details: task.details,
+          ),
+        )
+        .toList();
 
-    await DatabaseHelper().insertTask(copiedItem);
+    await DatabaseHelper().insertTasks(copiedItems);
     await NotificationService.scheduleDailyNotification();
-    // 可选：显示提示
+    _loadAllDateTasks();
+    if (dates.any((date) => isSameDay(date, _selectedDay))) {
+      _loadTasksForDay(_selectedDay);
+    }
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text("已复制到 ${date.toLocal().toString().split(' ')[0]}")),
+      SnackBar(content: Text('已复制到 ${sortedDates.length} 个日期')),
+    );
+  }
+
+  Future<Set<DateTime>?> _showMultiDatePicker() {
+    final selectedDates = <DateTime>{};
+    var focusedDay = DateTime.now();
+
+    return showDialog<Set<DateTime>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '选择复制日期',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                TableCalendar<void>(
+                  locale: 'zh_CN',
+                  firstDay: DateTime(2000),
+                  lastDay: DateTime(2100),
+                  focusedDay: focusedDay,
+                  rowHeight: 42,
+                  daysOfWeekHeight: 28,
+                  availableCalendarFormats: const {
+                    CalendarFormat.month: '月',
+                  },
+                  calendarFormat: CalendarFormat.month,
+                  headerStyle: const HeaderStyle(
+                    titleCentered: true,
+                    formatButtonVisible: false,
+                    leftChevronIcon: Icon(
+                      Icons.chevron_left,
+                      color: Color(0xFF234631),
+                    ),
+                    rightChevronIcon: Icon(
+                      Icons.chevron_right,
+                      color: Color(0xFF234631),
+                    ),
+                  ),
+                  calendarStyle: const CalendarStyle(
+                    selectedDecoration: BoxDecoration(
+                      color: Color(0xFF234631),
+                      shape: BoxShape.circle,
+                    ),
+                    todayDecoration: BoxDecoration(
+                      color: Color(0x807DA683),
+                      shape: BoxShape.circle,
+                    ),
+                    outsideTextStyle: TextStyle(color: Color(0xFFBDBDBD)),
+                    weekendTextStyle: TextStyle(color: Color(0xFF424242)),
+                  ),
+                  selectedDayPredicate: (day) => selectedDates.contains(
+                    DateTime(day.year, day.month, day.day),
+                  ),
+                  onPageChanged: (day) => focusedDay = day,
+                  onDaySelected: (selectedDay, newFocusedDay) {
+                    final date = DateTime(
+                      selectedDay.year,
+                      selectedDay.month,
+                      selectedDay.day,
+                    );
+                    setDialogState(() {
+                      focusedDay = newFocusedDay;
+                      if (!selectedDates.add(date)) {
+                        selectedDates.remove(date);
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('取消'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: selectedDates.isEmpty
+                          ? null
+                          : () => Navigator.pop(
+                                dialogContext,
+                                Set<DateTime>.from(selectedDates),
+                              ),
+                      child: Text('复制（${selectedDates.length}）'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -274,14 +386,14 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
                                       title: Text('复制打卡项'),
                                       onTap: () async {
                                         Navigator.pop(context); // 关闭菜单
-                                        DateTime? picked = await showDatePicker(
-                                          context: context,
-                                          initialDate: DateTime.now(),
-                                          firstDate: DateTime(2000),
-                                          lastDate: DateTime(2100),
-                                        );
-                                        if (picked != null) {
-                                          _copyTaskToDate(task, picked);
+                                        final pickedDates =
+                                            await _showMultiDatePicker();
+                                        if (pickedDates != null &&
+                                            pickedDates.isNotEmpty) {
+                                          await _copyTaskToDates(
+                                            task,
+                                            pickedDates,
+                                          );
                                         }
                                       },
                                     ),
