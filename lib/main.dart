@@ -1,10 +1,7 @@
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'mainframePage.dart';
-import 'package:sizer/sizer.dart';
 import 'common/app_imports.dart';
-// import 'common/func/notificationService.dart';
-// import 'common/func/permission.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,14 +16,7 @@ void main() async {
   //   statusBarIconBrightness: Brightness.light, // 状态栏图标颜色（白色）
   //   systemNavigationBarIconBrightness: Brightness.light, // 导航栏图标颜色（白色）
   // ));
-  // // 请求通知权限
-  // await checkAndRequestNotificationPermission();
-
-  // // 初始化通知服务，包括数据库和通知插件
-  // await NotificationService.initialize();
-
-  // // 读取存储的提醒时间，如果有就调度通知
-  // await NotificationService.scheduleDailyNotification();
+  await NotificationService.initializeAndSchedule();
 
   runApp(const MyApp());
 }

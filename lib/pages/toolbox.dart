@@ -6,7 +6,10 @@ import 'toolbox/relaxpage.dart';
 import '../common/app_imports.dart';
 
 class ToolboxPage extends StatefulWidget {
-  const ToolboxPage({super.key});
+  const ToolboxPage({super.key, required this.onOpenDrawer});
+
+  final VoidCallback onOpenDrawer;
+
   @override
   State<ToolboxPage> createState() => _ToolboxPageState();
 
@@ -66,6 +69,11 @@ class _ToolboxPageState extends State<ToolboxPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          tooltip: '打开设置',
+          onPressed: widget.onOpenDrawer,
+        ),
         title: const Text('工具箱'),
         centerTitle: true,
       ),

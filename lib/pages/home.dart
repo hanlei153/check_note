@@ -3,8 +3,12 @@ import 'package:table_calendar/table_calendar.dart';
 import '../common/app_imports.dart';
 
 class CheckNoteHomePage extends StatefulWidget {
+  const CheckNoteHomePage({super.key, required this.onOpenDrawer});
+
+  final VoidCallback onOpenDrawer;
+
   @override
-  _CheckNoteHomePageState createState() => _CheckNoteHomePageState();
+  State<CheckNoteHomePage> createState() => _CheckNoteHomePageState();
 }
 
 class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
@@ -16,8 +20,7 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
   @override
   void initState() {
     super.initState();
-    hasCheckedInToday();
-    hasCheckedAllDays();
+    _refreshCheckInStatus();
     _loadTasksForDay(_selectedDay);
     _loadAllDateTasks();
     // checkAndRequestNotificationPermission();
@@ -50,6 +53,7 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
     );
 
     await DatabaseHelper().insertTask(copiedItem);
+    await NotificationService.scheduleDailyNotification();
     // 可选：显示提示
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -61,22 +65,15 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
   bool isCheckIn = false;
   int checkInCount = 0;
 
-  void hasCheckedAllDays() async {
-    int totalCheckInCount = await DatabaseHelper().getTotalCheckinCount();
+  Future<void> _refreshCheckInStatus() async {
+    final checkedInToday = await DatabaseHelper().hasCheckedInToday(today);
+    final totalCheckInCount = await DatabaseHelper().getTotalCheckinCount();
+
+    if (!mounted) return;
     setState(() {
+      isCheckIn = checkedInToday;
       checkInCount = totalCheckInCount;
     });
-  }
-
-  void hasCheckedInToday() async {
-    bool checkInToday = await DatabaseHelper().hasCheckedInToday(today);
-    int checkInCount = await DatabaseHelper().getTotalCheckinCount();
-    if (checkInToday) {
-      setState(() {
-        isCheckIn = true;
-        checkInCount = checkInCount;
-      });
-    }
   }
 
   String _formatDate(DateTime date) =>
@@ -136,6 +133,11 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          tooltip: '打开设置',
+          onPressed: widget.onOpenDrawer,
+        ),
         title: Text('Check Note'),
         actions: [
           Container(
@@ -178,7 +180,7 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
                     ElevatedButton(
                       onPressed: () async {
                         await DatabaseHelper().checkInToday(today);
-                        hasCheckedInToday();
+                        await _refreshCheckInStatus();
                       },
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -353,6 +355,8 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
                                       done: value ?? false,
                                     );
                                     await DatabaseHelper().updateTask(updated);
+                                    await NotificationService
+                                        .scheduleDailyNotification();
                                     _loadTasksForDay(_selectedDay);
                                   },
                                 ),
@@ -390,6 +394,7 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
                 onPressed: () async {
                   if (taskid != null) {
                     await DatabaseHelper().deleteTask(taskid);
+                    await NotificationService.scheduleDailyNotification();
                     Navigator.of(context).pop(true); // 确认删除
                   } else {
                     Navigator.of(context).pop(false); // 无效ID，不删除
@@ -473,6 +478,7 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
                         );
 
                         await DatabaseHelper().updateTask(updatedTask);
+                        await NotificationService.scheduleDailyNotification();
                         Navigator.of(context).pop();
                         _loadTasksForDay(_selectedDay);
                       },
@@ -554,6 +560,7 @@ class _CheckNoteHomePageState extends State<CheckNoteHomePage> {
                           details: detailsController.text.trim(),
                         );
                         await DatabaseHelper().insertTask(task);
+                        await NotificationService.scheduleDailyNotification();
                         Navigator.pop(context);
                         _loadTasksForDay(_selectedDay);
                         _loadAllDateTasks();
